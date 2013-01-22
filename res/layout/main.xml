@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="vertical"
+              android:layout_width="fill_parent"
+              android:layout_height="fill_parent"
+        >
+    <ToggleButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="New ToggleButton"
+            android:id="@+id/ison" android:layout_gravity="center_horizontal"/>
+    <TextView
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="Red"
+            android:textColor="#FFFFFF" android:textSize="20dp"/>
+    <SeekBar
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/red"/>
+    <TextView
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="Green"
+            android:id="@+id/textView" android:textColor="#FFFFFF" android:textSize="20dp"/>
+    <SeekBar
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/green"/>
+    <TextView
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="Blue"
+            android:id="@+id/textView1" android:textColor="#FFFFFF" android:textSize="20dp"/>
+    <SeekBar
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/blue"/>
+    <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Feedback"
+            android:id="@+id/textView2" android:layout_gravity="left|center_vertical" android:textColor="#FFFFFF"
+            android:textSize="20dp"/>
+    <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="New Text"
+            android:id="@+id/fbred" android:layout_gravity="left|center_vertical" android:textColor="#FFFFFF"
+            android:textSize="20dp"/>
+    <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="New Text"
+            android:id="@+id/fbgreen" android:layout_gravity="left|center_vertical" android:textColor="#FFFFFF"
+            android:textSize="20dp"/>
+    <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="New Text"
+            android:id="@+id/fbblue" android:layout_gravity="left|center_vertical" android:textColor="#FFFFFF"
+            android:textSize="20dp"/>
+</LinearLayout>
+
