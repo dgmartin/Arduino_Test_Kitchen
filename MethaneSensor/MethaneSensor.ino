@@ -30,9 +30,9 @@ void setup() {
   pinMode(greenPin, OUTPUT); 
   pinMode(bluePin, OUTPUT); 
 
-  analogWrite(redPin, 255);
-  analogWrite(greenPin, 255);
-  analogWrite(bluePin, 255);
+  analogWrite(redPin, 0);
+  analogWrite(greenPin, 0);
+  analogWrite(bluePin, 0);
 }
 
 void loop() {
