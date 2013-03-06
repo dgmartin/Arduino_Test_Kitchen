@@ -20,7 +20,8 @@
 // pins for the LEDs:
 const int redPin = 3;
 const int greenPin = 5;
-const int bluePin = 6;
+
+int sensor =0;
 
 void setup() {
   // initialize serial:
@@ -28,45 +29,36 @@ void setup() {
   // make the pins outputs:
   pinMode(redPin, OUTPUT); 
   pinMode(greenPin, OUTPUT); 
-  pinMode(bluePin, OUTPUT); 
 
   analogWrite(redPin, 0);
   analogWrite(greenPin, 0);
-  analogWrite(bluePin, 0);
 }
 
 void loop() {
-  // if there's any serial available, read it:
-  while (Serial.available() > 0) {
+  int sensorValue = analogRead(sensor)+1;
+  int green = 255*(constrain(sensorValue, 0,512)/512);
+  int red =255*(constrain(sensorValue-512, 0,512)/512);
 
-    // look for the next valid integer in the incoming serial stream:
-    int red = Serial.parseInt(); 
-    // do it again:
-    int green = Serial.parseInt(); 
-    // do it again:
-    int blue = Serial.parseInt(); 
+  // constrain the values to 0 - 255 and invert
+  // if you're using a common-cathode LED, just use "constrain(color, 0, 255);"
+  red = constrain(red, 0, 255);
+  green = 255 - constrain(green, 0, 255);
 
-    // look for the newline. That's the end of your
-    // sentence:
-    if (Serial.read() == '\n') {
-      // constrain the values to 0 - 255 and invert
-      // if you're using a common-cathode LED, just use "constrain(color, 0, 255);"
-      red = 255 - constrain(red, 0, 255);
-      green = 255 - constrain(green, 0, 255);
-      blue = 255 - constrain(blue, 0, 255);
+  // fade the red, green, and blue legs of the LED: 
+  analogWrite(redPin, red);
+  analogWrite(greenPin, green);
 
-      // fade the red, green, and blue legs of the LED: 
-      analogWrite(redPin, red);
-      analogWrite(greenPin, green);
-      analogWrite(bluePin, blue);
-
-      // print the three numbers in one string as hexadecimal:
-      Serial.print(red, HEX);
-      Serial.print(green, HEX);
-      Serial.println(blue, HEX);
-    }
-  }
+  // print the three numbers in one string as hexadecimal:
+  Serial.print('Sensor:'); 
+  Serial.print(sensorValue);
+  Serial.print("\t"); 
+  Serial.print('Red:'); 
+  Serial.print(red);
+  Serial.print("\t");
+  Serial.print('Green:'); 
+  Serial.println(green);
 }
+
 
 
 
