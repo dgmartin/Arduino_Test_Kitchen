@@ -36,28 +36,52 @@ void setup() {
 
 void loop() {
   int sensorValue = analogRead(sensor)+1;
-  int green = 255*(constrain(sensorValue, 0,512)/512);
-  int red =255*(constrain(sensorValue-512, 0,512)/512);
+
+  int greenInitial = constrain(sensorValue - 512, 0,512);
+  int redInitial = constrain(sensorValue, 0,512);
+
+  int green = int(255.0 * ( greenInitial / 512.0));
+  int red = int(255.0 * (redInitial / 512.0)); 
+
+
+  Serial.print("Sensor: "); 
+  Serial.print(sensorValue);
+  Serial.print("\t"); 
+  Serial.print("Red Initial: "); 
+  Serial.print(redInitial);
+  Serial.print("\t");
+  Serial.print("Green Initial: "); 
+  Serial.print(greenInitial);
+
+  Serial.print("\t");
+  Serial.print("Red: "); 
+  Serial.print(red);
+  Serial.print("\t");
+  Serial.print("Green: "); 
+  Serial.println(green);
 
   // constrain the values to 0 - 255 and invert
   // if you're using a common-cathode LED, just use "constrain(color, 0, 255);"
-  red = constrain(red, 0, 255);
-  green = 255 - constrain(green, 0, 255);
+  red = 255 - constrain(red, 0, 255);
+  green = constrain(green, 0, 255);
 
   // fade the red, green, and blue legs of the LED: 
   analogWrite(redPin, red);
   analogWrite(greenPin, green);
 
+  //  analogWrite(redPin,255);
+  //  analogWrite(greenPin,255);
+
   // print the three numbers in one string as hexadecimal:
-  Serial.print('Sensor:'); 
-  Serial.print(sensorValue);
-  Serial.print("\t"); 
-  Serial.print('Red:'); 
-  Serial.print(red);
-  Serial.print("\t");
-  Serial.print('Green:'); 
-  Serial.println(green);
+
 }
+
+
+
+
+
+
+
 
 
 
