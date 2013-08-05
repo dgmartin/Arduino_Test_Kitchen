@@ -1,11 +1,7 @@
 package com.danmartin.atk.threads;
 
-import android.hardware.usb.UsbDeviceConnection;
-import android.hardware.usb.UsbEndpoint;
-import android.hardware.usb.UsbRequest;
-import android.util.Log;
-
-import java.nio.ByteBuffer;
+import java.io.BufferedWriter;
+import java.io.IOException;
 
 /**
  * Created with IntelliJ IDEA.
@@ -17,13 +13,10 @@ import java.nio.ByteBuffer;
 public class UsbWriteThread extends Thread {
 
     private boolean mRun = true;
-    private boolean mChangeMade = true;
 
     private String mPayload;
 
-    UsbDeviceConnection mConnection;
-    UsbEndpoint mEndpointOut;
-    UsbWriteCallback mListener;
+    private BufferedWriter mOutputStream;
 
     public UsbWriteThread() {
         super("UsbWriter");
@@ -33,62 +26,55 @@ public class UsbWriteThread extends Thread {
         super(threadName);
     }
 
-    public void init(UsbDeviceConnection connection, UsbEndpoint endpoint_out, UsbWriteCallback listener) {
-        mConnection = connection;
-        mEndpointOut = endpoint_out;
-        mListener = listener;
+    public void init(BufferedWriter inOutputStream) {
+        mOutputStream = inOutputStream;
     }
 
     public void notify(String payload) {
-        mPayload = payload;
-        mChangeMade = true;
+        synchronized (mPayload) {
+            mPayload = payload;
+        }
         synchronized (this) {
-            this.notify();
+            this.notifyAll();
         }
     }
 
     @Override
     public void run() {
-        synchronized (this) {
-            try {
-                UsbRequest request = new UsbRequest();
-                request.initialize(mConnection, mEndpointOut);
-                while (mRun) {
-                    while (mChangeMade) {
-                        mChangeMade = false;
-                        ByteBuffer bufferOut;
-//                        bufferOut = BufferConverter.str_to_bb(mPayload);
-                        bufferOut = ByteBuffer.allocate(mPayload.getBytes().length);
-                        bufferOut.clear();
-                        bufferOut.put(mPayload.getBytes());
-                        Log.e("ATK", "BufferOut Before: " + bufferOut(bufferOut));
-                        request.queue(bufferOut, bufferOut.limit());
-
-                        mListener.sent(true);
-//                        UsbRequest result = mConnection.requestWait();
-//                        if (result == request && mListener != null) {
-//                            mListener.sent(true);
-//                        }
-                    }
-                    this.wait();
+        String tempPayload = null;
+        while (mRun) {
+            if (mPayload != null) {
+                synchronized (mPayload) {
+                    tempPayload = mPayload;
+                    mPayload = null;
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
+                if (tempPayload != null&&mOutputStream!=null) {
+                    try {
+                        mOutputStream.write(tempPayload);
+                        tempPayload = null;
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            } else {
+                try {
+                    this.wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
 
-    private String bufferOut(ByteBuffer buf) {
-        String bufString = "";
-        byte[] ray = buf.array();
-        for (byte bite : ray) {
-            bufString += bite + ", ";
+    public void close() {
+        mRun = false;
+        try {
+            mOutputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        return bufString;
+        this.notifyAll();
     }
 
-    public interface UsbWriteCallback {
-        public void sent(boolean sent);
-    }
 }
 
