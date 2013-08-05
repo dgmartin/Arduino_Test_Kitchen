@@ -21,12 +21,15 @@ import com.android.future.usb.UsbManager;
 import com.danmartin.atk.R;
 import com.danmartin.atk.threads.UsbReadThread;
 import com.danmartin.atk.threads.UsbWriteThread;
+import com.danmartin.atk.utils.BufferConverter;
 
 import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.util.HashMap;
 import java.util.Iterator;
 
-public class SliderActivity extends Activity implements SeekBar.OnSeekBarChangeListener {
+public class SliderActivity extends Activity implements SeekBar.OnSeekBarChangeListener, BroadcastReceiver {
 
     public final int MAX_VALUE = 255;
     ToggleButton mIsOn;
@@ -62,34 +65,6 @@ public class SliderActivity extends Activity implements SeekBar.OnSeekBarChangeL
     private static final String USB_ACCESSORY_ATTACHED = "android.hardware.usb.action.USB_ACCESSORY_ATTACHED";
     private static final String ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION";
     private static final String USB_DEVICE_ATTACHED = "android.hardware.usb.action.USB_DEVICE_ATTACHED";
-    private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
-
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            Log.e("ATK", "ACTION:  " + action);
-            if (USB_ACCESSORY_ATTACHED.equals(action)) {
-                mIsOn.setChecked(true);
-//                openAccessory();
-            } else if (action.equalsIgnoreCase(USB_DEVICE_ATTACHED)) {
-                mDevice =  UsbManager.getAccessory(intent);
-
-            } else if (action.equalsIgnoreCase(ACTION_USB_PERMISSION)) {
-                mDevice =  UsbManager.getAccessory(intent);
-                synchronized (this) {
-                    UsbAccessory device =  UsbManager.getAccessory(intent);
-
-                    if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
-                        if (device != null) {
-                            mDevice = device;
-                            openDevice();
-                        }
-                    } else {
-                        Log.d("ATK", "permission denied for device " + device);
-                    }
-                }
-            }
-        }
-    };
 
 
     @Override
@@ -111,32 +86,22 @@ public class SliderActivity extends Activity implements SeekBar.OnSeekBarChangeL
         mBlueFeed = (TextView) findViewById(R.id.fbblue);
 
 
-        UsbManager manager = UsbManager.getInstance(this);
-
-
         IntentFilter filter = new IntentFilter();
         filter.addAction(USB_ACCESSORY_ATTACHED);
         filter.addAction(ACTION_USB_PERMISSION);
         filter.addAction(USB_DEVICE_ATTACHED);
-        registerReceiver(mUsbReceiver, filter);
+        filter.addAction(UsbManager.ACTION_USB_ACCESSORY_DETACHED);
+        registerReceiver(this, filter);
 
-        UsbManager mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
-
-        HashMap<String, UsbDevice> deviceList = mUsbManager.getDeviceList();
-        Iterator<UsbDevice> deviceIterator = deviceList.values().iterator();
-        if (deviceIterator.hasNext()) {
-            mDevice = deviceIterator.next();
-            Log.e("ATK", "DEVICE:  " + mDevice.getDeviceName() + " Vendor ID: " + mDevice.getVendorId() + "PRODUCT ID: " + mDevice.getProductId());
-            mPermissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
-
-            mUsbManager.requestPermission(mDevice, mPermissionIntent);
-        }
+        openAccessory();
     }
 
     private void openAccessory() {
-        UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
-        UsbAccessory[] accessoryList = manager.getAccessoryList();
-        mAccessory = accessoryList[0];
+        UsbManager manager = UsbManager.getInstance(this);
+        if (mAccessory == null) {
+            UsbAccessory[] accessoryList = manager.getAccessoryList();
+            mAccessory = accessoryList[0];
+        }
         Log.d("ATK", "openAccessory: " + mAccessory);
         mFileDescriptor = manager.openAccessory(mAccessory);
         if (mFileDescriptor != null) {
@@ -147,55 +112,10 @@ public class SliderActivity extends Activity implements SeekBar.OnSeekBarChangeL
 
             FileOutputStream fos = new FileOutputStream(fd);
             mOutputStream = new DataOutputStream(fos);
-            SliderActivityOld.TxCommThread thread = new TxCommThread("CommThread");
+            TxCommThread thread = new TxCommThread("CommThread");
             thread.start();
         }
     }
-
-//    private void openDevice() {
-//        Log.e("ATK", "!!!!!!!!!!! Device Found !!!!!!!!!!!!!!");
-//        if (mDevice != null) {
-//            UsbManager mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
-//            int count = mDevice.getInterfaceCount();
-//            UsbInterface intf = mDevice.getInterface(1);
-//            int endpointCount = intf.getEndpointCount();
-//            for (int i = 0; i < endpointCount; i++) {
-//                UsbEndpoint crntEndPoint = intf.getEndpoint(i);
-//                if (crntEndPoint.getDirection() == UsbConstants.USB_DIR_OUT && mEndpointOut == null) {
-//                    mEndpointOut = crntEndPoint;
-//                } else if (crntEndPoint.getDirection() == UsbConstants.USB_DIR_IN && mEndpointIn == null) {
-//                    mEndpointIn = crntEndPoint;
-//                }
-//                if (mEndpointOut != null && mEndpointIn != null) break;
-//            }
-//            mConnection = mUsbManager.openDevice(mDevice);
-//            if (mConnection != null) {
-//                mConnection.claimInterface(intf, true);
-//
-//                if (mWriter != null) {
-//                    String payload = mRedVal + "," + mGreenVal + "," + mBlueVal + "\n";
-//                    mWriter.notify(payload);
-//                } else {
-//                    mWriter = new UsbWriteThread();
-//                    mWriter.init(mConnection, mEndpointOut, null);
-//                    mWriter.start();
-//                    String payload = mRedVal + "," + mGreenVal + "," + mBlueVal + "\n";
-//                    mWriter.notify(payload);
-//                }
-////                if (mReader == null) {
-////                    mReader = new UsbReadThread();
-////                    mReader.init(mConnection, mEndpointIn, new UsbReadThread.UsbReadCallback() {
-////
-////                        @Override
-////                        public void recieved(byte[] results) {
-////                            //To change body of implemented methods use File | Settings | File Templates.
-////                        }
-////                    });
-////                    mReader.start();
-////                }
-//            }
-//        }
-//    }
 
     @Override
     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -234,68 +154,228 @@ public class SliderActivity extends Activity implements SeekBar.OnSeekBarChangeL
             mBlueVal = val;
         }
 //        if (mUSBRunHandle != null) {
-        if ( mWriter != null) {
+        if (mWriter != null) {
             String payload = mRedVal + "," + mGreenVal + "," + mBlueVal + "\n";
             mWriter.notify(payload);
         }
 //        }
     }
 
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        String action = intent.getAction();
+        Log.e("ATK", "ACTION:  " + action);
+        if (USB_ACCESSORY_ATTACHED.equals(action)) {
+            mIsOn.setChecked(true);
+//                openAccessory();
+        } else if (action.equalsIgnoreCase(USB_DEVICE_ATTACHED)) {
+            mDevice = UsbManager.getAccessory(intent);
 
-//    public class USBRunner implements Runnable {
+        } else if (action.equalsIgnoreCase(ACTION_USB_PERMISSION)) {
+            mDevice = UsbManager.getAccessory(intent);
+            synchronized (this) {
+                UsbAccessory accesory = UsbManager.getAccessory(intent);
+                if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
+                    if (accesory != null) {
+                        mAccessory = accesory;
+                        openAccessory();
+                    }
+                } else {
+                    Log.d("ATK", "permission denied for device " + accesory);
+                }
+            }
+        } else if (UsbManager.ACTION_USB_ACCESSORY_DETACHED.equals(action)) {
+            UsbAccessory accessory = (UsbAccessory) intent.getParcelableExtra(android.hardware.usb.UsbManager.EXTRA_ACCESSORY);
+            if (accessory != null) {
+                // call your method that cleans up and closes communication with the accessory
+            }
+        }
+    }
+
+
+    public class TxCommThread extends Thread {
+
+
+        public TxCommThread() {
+            super();
+        }
+
+        public TxCommThread(String name) {
+            super(name);
+        }
+
+        @Override
+        public void run() {
+            try {
+//                Looper.prepare();
 //
-//        @Override
-//        public void run() {
-//            Looper.prepare();
+//                mUSBRunHandle = new Handler() {
 //
-//            mUSBRunHandle = new Handler() {
-//
-//                public void handleMessage(Message msg) {
-//                    if (msg.arg1 == 1) {
-//                        mInputStream.notify();
+//                    public void handleMessage(Message msg) {
+////                    if (msg.arg1 == 1) {
+////                        mInputStream.notify();
+//                        communicate();
+////                        try {
+////                            queue.notify();
+////                        } catch (IllegalMonitorStateException e) {
+////                            e.printStackTrace();
+////                        }
+////                    }
 //                    }
-//                }
-//            };
-//
+//                };
+
+                communicate();
+//                Looper.loop();
+            } catch (Throwable t) {
+                Log.e("ATK", "halted due to an error", t);
+            }
+
+
 //            while (mFileDescriptor != null) {
-//                if (mChangeMade) {
-//                    try {
-//                        String myPackage = mRedVal + "," + mGreenVal + "," + mBlueVal + "\n";
-//                        mOutputStream.writeChars(myPackage);
-//                        mChangeMade = false;
-//                    } catch (IOException e) {
-//                        e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-//                    }
-//                }
-//                try {
-//                    String input = mInputStream.readLine();
-//                    if (input != null && !input.equalsIgnoreCase("")) {
-//                        String red = input.substring(0, 1);
-//                        mRedFeed.setText(getValueString(red));
-//                        String green = input.substring(2, 3);
-//                        mGreenFeed.setText(getValueString(green));
-//                        String blue = input.substring(4, 5);
-//                        mBlueFeed.setText(getValueString(blue));
-//                        if (Integer.parseInt(red) != mRedVal || Integer.parseInt(green) != mGreenVal || Integer.parseInt(blue) != mBlueVal)
-//                            mChangeMade = true;
-//                    }
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
 //                try {
 //                    if (!mChangeMade)
 //                        mInputStream.wait();
 //                } catch (InterruptedException e) {
-////                    Thread.currentThread().interrupt();
+//                    Thread.currentThread().interrupt();
 //                }
-//            }
-//        }
+        }
+
+        //        }
+        protected void communicate() {
+            synchronized (mLock) {
+                while (true) {
+
+                    try {
+                        while (mChangeMade) {
+                            String myPackage = mRedVal + "," + mGreenVal + "," + mBlueVal + "\n";
+                            try {
+                                mOutputStream.writeChars(myPackage);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            try {
+                                mInputStream.readLine() ;
+                            } catch (IOException e) {
+                                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                            }
+                            mChangeMade = false;
+                        }else{
+                            Log.e("ATK", "Request Failed");
+                        }
+                        Log.e("ATK", "BufferOut After: " + bufferOut.limit());
+                        CharBuffer cBuf = bufferIn.asCharBuffer();
+                        Log.e("ATK", "BufferIn: " + cBuf.toString());
+                        String input = bufferOut(bufferIn);
+                        Log.e("ATK", "Input is: " + input);
+
+//                        String input = mInputStream.readLine();
+
+
+//                if (input != null && !input.equalsIgnoreCase("")) {
+//                    final String red = input.substring(0, 1);
+//                    final String green = input.substring(2, 3);
+//                    final String blue = input.substring(4, 5);
 //
-//        protected String getValueString(String startVal) {
-//            String hex = startVal;
-//            int val = Integer.parseInt(hex, 16);
-//            int percent = (val / MAX_VALUE) * 100;
-//            return "Hex: " + hex + " Value: " + val + " Percent: " + percent;
-//        }
-//    }
+//                    runOnUiThread(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            mRedFeed.setText(getValueString(red));
+//                            mGreenFeed.setText(getValueString(green));
+//                            mBlueFeed.setText(getValueString(blue));
+//                            if (Integer.parseInt(red) != mRedVal || Integer.parseInt(green) != mGreenVal || Integer.parseInt(blue) != mBlueVal)
+//                                mChangeMade = true;
+//                        }
+//                    });
+//
+//                }
+                    }
+                    mLock.wait();
+                }catch(InterruptedException ignored){
+                    ignored.printStackTrace();
+                }
+            }
+        }
+    }
+
+
+    protected String getValueString(String startVal) {
+        try {
+            String hex = startVal;
+            int val = Integer.parseInt(hex, 16);
+            int percent = (val / MAX_VALUE) * 100;
+            return "Hex: " + hex + " Value: " + val + " Percent: " + percent;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "Error";
+    }
+
+    private String bufferOut(ByteBuffer buf) {
+        String bufString = "";
+        byte[] ray = buf.array();
+        for (byte bite : ray) {
+            bufString += bite + ", ";
+        }
+        return bufString;
+    }
 }
+
+   /*
+    public class USBRunner implements Runnable {
+
+        @Override
+        public void run() {
+            Looper.prepare();
+
+            mUSBRunHandle = new Handler() {
+
+                public void handleMessage(Message msg) {
+                    if (msg.arg1 == 1) {
+                        mInputStream.notify();
+                    }
+                }
+            };
+
+            while (mFileDescriptor != null) {
+                if (mChangeMade) {
+                    try {
+                        String myPackage = mRedVal + "," + mGreenVal + "," + mBlueVal + "\n";
+                        mOutputStream.writeChars(myPackage);
+                        mChangeMade = false;
+                    } catch (IOException e) {
+                        e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                    }
+                }
+                try {
+                    String input = mInputStream.readLine();
+                    if (input != null && !input.equalsIgnoreCase("")) {
+                        String red = input.substring(0, 1);
+                        mRedFeed.setText(getValueString(red));
+                        String green = input.substring(2, 3);
+                        mGreenFeed.setText(getValueString(green));
+                        String blue = input.substring(4, 5);
+                        mBlueFeed.setText(getValueString(blue));
+                        if (Integer.parseInt(red) != mRedVal || Integer.parseInt(green) != mGreenVal || Integer.parseInt(blue) != mBlueVal)
+                            mChangeMade = true;
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    if (!mChangeMade)
+                        mInputStream.wait();
+                } catch (InterruptedException e) {
+//                    Thread.currentThread().interrupt();
+                }
+            }
+        }
+
+        protected String getValueString(String startVal) {
+            String hex = startVal;
+            int val = Integer.parseInt(hex, 16);
+            int percent = (val / MAX_VALUE) * 100;
+            return "Hex: " + hex + " Value: " + val + " Percent: " + percent;
+        }
+   }
+}
+*/
