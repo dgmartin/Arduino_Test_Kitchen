@@ -6,7 +6,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.hardware.usb.*;
+import android.hardware.usb.UsbAccessory;
+import android.hardware.usb.UsbDeviceConnection;
+import android.hardware.usb.UsbEndpoint;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -15,6 +17,7 @@ import android.util.Log;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.ToggleButton;
+import com.android.future.usb.UsbManager;
 import com.danmartin.atk.R;
 import com.danmartin.atk.utils.BufferConverter;
 
@@ -44,7 +47,7 @@ public class SliderActivityOld extends Activity implements SeekBar.OnSeekBarChan
     int mBlueVal = 0;
 
     UsbAccessory mAccessory;
-    UsbDevice mDevice;
+    UsbManager mDevice;
     ParcelFileDescriptor mFileDescriptor;
     DataInputStream mInputStream;
     DataOutputStream mOutputStream;
@@ -69,7 +72,7 @@ public class SliderActivityOld extends Activity implements SeekBar.OnSeekBarChan
                 mIsOn.setChecked(true);
                 openAccessory();
             } else if (action.equalsIgnoreCase(USB_DEVICE_ATTACHED)) {
-                mDevice = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                mDevice =  UsbManager.getAccessory(intent);
 
             } else if (action.equalsIgnoreCase(ACTION_USB_PERMISSION)) {
                 mDevice = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);

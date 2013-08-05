@@ -29,5 +29,5 @@
             <!--android:resource="@xml/accessory_filter" />-->
         </activity>
     </application>
-    <uses-feature android:name="android.hardware.usb.accessory"/>
+    <uses-feature android:name="com.android.future.usb.accessory"/>
 </manifest>

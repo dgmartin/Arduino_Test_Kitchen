@@ -6,7 +6,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.hardware.usb.*;
+import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbDeviceConnection;
+import android.hardware.usb.UsbEndpoint;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.ParcelFileDescriptor;
@@ -14,12 +16,13 @@ import android.util.Log;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.ToggleButton;
+import com.android.future.usb.UsbAccessory;
+import com.android.future.usb.UsbManager;
 import com.danmartin.atk.R;
 import com.danmartin.atk.threads.UsbReadThread;
 import com.danmartin.atk.threads.UsbWriteThread;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.io.*;
 import java.util.HashMap;
 import java.util.Iterator;
 
@@ -40,7 +43,7 @@ public class SliderActivity extends Activity implements SeekBar.OnSeekBarChangeL
     int mBlueVal = 0;
 
     UsbAccessory mAccessory;
-    UsbDevice mDevice;
+    UsbAccessory mDevice;
     ParcelFileDescriptor mFileDescriptor;
     DataInputStream mInputStream;
     DataOutputStream mOutputStream;
@@ -68,12 +71,12 @@ public class SliderActivity extends Activity implements SeekBar.OnSeekBarChangeL
                 mIsOn.setChecked(true);
 //                openAccessory();
             } else if (action.equalsIgnoreCase(USB_DEVICE_ATTACHED)) {
-                mDevice = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                mDevice =  UsbManager.getAccessory(intent);
 
             } else if (action.equalsIgnoreCase(ACTION_USB_PERMISSION)) {
-                mDevice = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                mDevice =  UsbManager.getAccessory(intent);
                 synchronized (this) {
-                    UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                    UsbAccessory device =  UsbManager.getAccessory(intent);
 
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
                         if (device != null) {
@@ -108,7 +111,7 @@ public class SliderActivity extends Activity implements SeekBar.OnSeekBarChangeL
         mBlueFeed = (TextView) findViewById(R.id.fbblue);
 
 
-//        UsbManager manager = UsbManager.getInstance(this);
+        UsbManager manager = UsbManager.getInstance(this);
 
 
         IntentFilter filter = new IntentFilter();
@@ -130,69 +133,69 @@ public class SliderActivity extends Activity implements SeekBar.OnSeekBarChangeL
         }
     }
 
-//    private void openAccessory() {
-//        UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
-//        UsbAccessory[] accessoryList = manager.getAccessoryList();
-//        mAccessory = accessoryList[0];
-//        Log.d("ATK", "openAccessory: " + mAccessory);
-//        mFileDescriptor = manager.openAccessory(mAccessory);
-//        if (mFileDescriptor != null) {
-//            FileDescriptor fd = mFileDescriptor.getFileDescriptor();
-//
-//            FileInputStream fis = new FileInputStream(fd);
-//            mInputStream = new DataInputStream(fis);
-//
-//            FileOutputStream fos = new FileOutputStream(fd);
-//            mOutputStream = new DataOutputStream(fos);
-//            TxCommThread thread = new TxCommThread("CommThread");
-//            thread.start();
-//        }
-//    }
+    private void openAccessory() {
+        UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        UsbAccessory[] accessoryList = manager.getAccessoryList();
+        mAccessory = accessoryList[0];
+        Log.d("ATK", "openAccessory: " + mAccessory);
+        mFileDescriptor = manager.openAccessory(mAccessory);
+        if (mFileDescriptor != null) {
+            FileDescriptor fd = mFileDescriptor.getFileDescriptor();
 
-    private void openDevice() {
-        Log.e("ATK", "!!!!!!!!!!! Device Found !!!!!!!!!!!!!!");
-        if (mDevice != null) {
-            UsbManager mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
-            int count = mDevice.getInterfaceCount();
-            UsbInterface intf = mDevice.getInterface(1);
-            int endpointCount = intf.getEndpointCount();
-            for (int i = 0; i < endpointCount; i++) {
-                UsbEndpoint crntEndPoint = intf.getEndpoint(i);
-                if (crntEndPoint.getDirection() == UsbConstants.USB_DIR_OUT && mEndpointOut == null) {
-                    mEndpointOut = crntEndPoint;
-                } else if (crntEndPoint.getDirection() == UsbConstants.USB_DIR_IN && mEndpointIn == null) {
-                    mEndpointIn = crntEndPoint;
-                }
-                if (mEndpointOut != null && mEndpointIn != null) break;
-            }
-            mConnection = mUsbManager.openDevice(mDevice);
-            if (mConnection != null) {
-                mConnection.claimInterface(intf, true);
+            FileInputStream fis = new FileInputStream(fd);
+            mInputStream = new DataInputStream(fis);
 
-                if (mWriter != null) {
-                    String payload = mRedVal + "," + mGreenVal + "," + mBlueVal + "\n";
-                    mWriter.notify(payload);
-                } else {
-                    mWriter = new UsbWriteThread();
-                    mWriter.init(mConnection, mEndpointOut, null);
-                    mWriter.start();
-                    String payload = mRedVal + "," + mGreenVal + "," + mBlueVal + "\n";
-                    mWriter.notify(payload);
-                }
-//                if (mReader == null) {
-//                    mReader = new UsbReadThread();
-//                    mReader.init(mConnection, mEndpointIn, new UsbReadThread.UsbReadCallback() {
-//
-//                        @Override
-//                        public void recieved(byte[] results) {
-//                            //To change body of implemented methods use File | Settings | File Templates.
-//                        }
-//                    });
-//                    mReader.start();
-//                }
-            }
+            FileOutputStream fos = new FileOutputStream(fd);
+            mOutputStream = new DataOutputStream(fos);
+            SliderActivityOld.TxCommThread thread = new TxCommThread("CommThread");
+            thread.start();
         }
     }
+
+//    private void openDevice() {
+//        Log.e("ATK", "!!!!!!!!!!! Device Found !!!!!!!!!!!!!!");
+//        if (mDevice != null) {
+//            UsbManager mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+//            int count = mDevice.getInterfaceCount();
+//            UsbInterface intf = mDevice.getInterface(1);
+//            int endpointCount = intf.getEndpointCount();
+//            for (int i = 0; i < endpointCount; i++) {
+//                UsbEndpoint crntEndPoint = intf.getEndpoint(i);
+//                if (crntEndPoint.getDirection() == UsbConstants.USB_DIR_OUT && mEndpointOut == null) {
+//                    mEndpointOut = crntEndPoint;
+//                } else if (crntEndPoint.getDirection() == UsbConstants.USB_DIR_IN && mEndpointIn == null) {
+//                    mEndpointIn = crntEndPoint;
+//                }
+//                if (mEndpointOut != null && mEndpointIn != null) break;
+//            }
+//            mConnection = mUsbManager.openDevice(mDevice);
+//            if (mConnection != null) {
+//                mConnection.claimInterface(intf, true);
+//
+//                if (mWriter != null) {
+//                    String payload = mRedVal + "," + mGreenVal + "," + mBlueVal + "\n";
+//                    mWriter.notify(payload);
+//                } else {
+//                    mWriter = new UsbWriteThread();
+//                    mWriter.init(mConnection, mEndpointOut, null);
+//                    mWriter.start();
+//                    String payload = mRedVal + "," + mGreenVal + "," + mBlueVal + "\n";
+//                    mWriter.notify(payload);
+//                }
+////                if (mReader == null) {
+////                    mReader = new UsbReadThread();
+////                    mReader.init(mConnection, mEndpointIn, new UsbReadThread.UsbReadCallback() {
+////
+////                        @Override
+////                        public void recieved(byte[] results) {
+////                            //To change body of implemented methods use File | Settings | File Templates.
+////                        }
+////                    });
+////                    mReader.start();
+////                }
+//            }
+//        }
+//    }
 
     @Override
     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {

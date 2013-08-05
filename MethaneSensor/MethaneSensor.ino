@@ -21,6 +21,9 @@
 const int redPin = 3;
 const int greenPin = 5;
 
+const int maxVal = 1024;
+const int minVal = 250;
+
 int sensor =0;
 
 void setup() {
@@ -37,21 +40,36 @@ void setup() {
 void loop() {
   int sensorValue = analogRead(sensor)+1;
 
-  int greenInitial = constrain(sensorValue - 512, 0,512);
-  int redInitial = constrain(sensorValue, 0,512);
+  float delta = maxVal - minVal;
+  float mid = (delta/2.0) + minVal;
+  sensorValue =constrain(sensorValue, minVal,maxVal);
+  float valOne =constrain( float( sensorValue - minVal) / float(mid - minVal), 0, 1);
+  float valTwo = constrain( float( sensorValue - mid) / float(maxVal - mid), 0, 1);
 
-  int green = int(255.0 * ( greenInitial / 512.0));
-  int red = int(255.0 * (redInitial / 512.0)); 
+  //  Serial.print("Delta: "); 
+  //  Serial.print(delta);
+  //  Serial.print("\t"); 
+  //  Serial.print("Mid: "); 
+  //  Serial.println(mid);
+
+  //  int greenInitial = constrain(sensorValue - 512, 0,512);
+  //  int redInitial = constrain(sensorValue, 0,512);
+
+  //  int green = int(255.0 * ( greenInitial / 512.0));
+  //  int red = int(255.0 * (redInitial / 512.0)); 
+
+  int green = int(255.0 * valTwo);
+  int red = int(255.0 * valOne);
 
 
   Serial.print("Sensor: "); 
   Serial.print(sensorValue);
   Serial.print("\t"); 
   Serial.print("Red Initial: "); 
-  Serial.print(redInitial);
+  Serial.print(valOne);
   Serial.print("\t");
   Serial.print("Green Initial: "); 
-  Serial.print(greenInitial);
+  Serial.print(valTwo);
 
   Serial.print("\t");
   Serial.print("Red: "); 
@@ -75,6 +93,10 @@ void loop() {
   // print the three numbers in one string as hexadecimal:
 
 }
+
+
+
+
 
 
 
