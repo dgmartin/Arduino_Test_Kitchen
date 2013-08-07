@@ -5,14 +5,14 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.hardware.usb.UsbAccessory;
+import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.ToggleButton;
-import com.android.future.usb.UsbAccessory;
-import com.android.future.usb.UsbManager;
 import com.danmartin.atk.R;
 import com.danmartin.atk.threads.UsbReadThread;
 import com.danmartin.atk.threads.UsbWriteThread;
@@ -58,12 +58,11 @@ public class SliderActivity extends Activity implements SeekBar.OnSeekBarChangeL
                 mIsOn.setChecked(true);
 //                openAccessory();
             } else if (action.equalsIgnoreCase(USB_DEVICE_ATTACHED)) {
-                mDevice = UsbManager.getAccessory(intent);
+                mDevice = (UsbAccessory) intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
 
             } else if (action.equalsIgnoreCase(ACTION_USB_PERMISSION)) {
-                mDevice = UsbManager.getAccessory(intent);
                 synchronized (this) {
-                    UsbAccessory accesory = UsbManager.getAccessory(intent);
+                    UsbAccessory accesory = (UsbAccessory) intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
                         if (accesory != null) {
                             mAccessory = accesory;
@@ -112,28 +111,33 @@ public class SliderActivity extends Activity implements SeekBar.OnSeekBarChangeL
     }
 
     private void openAccessory() {
-        UsbManager manager = UsbManager.getInstance(this);
+        UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
         if (mAccessory == null) {
             UsbAccessory[] accessoryList = manager.getAccessoryList();
-            mAccessory = accessoryList[0];
+            if (accessoryList != null && accessoryList.length > 0) {
+                mAccessory = accessoryList[0];
+            }
         }
-        Log.d("ATK", "openAccessory: " + mAccessory);
-        mFileDescriptor = manager.openAccessory(mAccessory);
-        if (mFileDescriptor != null) {
-            FileDescriptor fd = mFileDescriptor.getFileDescriptor();
 
-            FileInputStream fis = new FileInputStream(fd);
+        if (mAccessory != null) {
+            Log.d("ATK", "openAccessory: " + mAccessory);
+            mFileDescriptor = manager.openAccessory(mAccessory);
+            if (mFileDescriptor != null) {
+                FileDescriptor fd = mFileDescriptor.getFileDescriptor();
+
+                FileInputStream fis = new FileInputStream(fd);
 //            mInputStream = new DataInputStream(fis);
-            mInputStream = new BufferedReader(new InputStreamReader(fis));
-            mReader = new UsbReadThread();
-            mReader.init(mInputStream, this);
-            mReader.start();
+                mInputStream = new BufferedReader(new InputStreamReader(fis));
+                mReader = new UsbReadThread();
+                mReader.init(mInputStream, this);
+                mReader.start();
 
-            FileOutputStream fos = new FileOutputStream(fd);
-            mOutputStream = new BufferedWriter(new OutputStreamWriter(fos));
-            mWriter = new UsbWriteThread();
-            mWriter.init(mOutputStream);
-            mWriter.start();
+                FileOutputStream fos = new FileOutputStream(fd);
+                mOutputStream = new BufferedWriter(new OutputStreamWriter(fos));
+                mWriter = new UsbWriteThread();
+                mWriter.init(mOutputStream);
+                mWriter.start();
+            }
         }
     }
 
