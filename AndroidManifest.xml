@@ -25,8 +25,8 @@
                 <action android:name="android.hardware.usb.action.USB_ACCESSORY_ATTACHED"/>
             </intent-filter>
 
-            <!--<meta-data android:name="android.hardware.usb.action.USB_USB_DEVICE_ATTACHED"-->
-            <!--android:resource="@xml/accessory_filter" />-->
+            <meta-data android:name="android.hardware.usb.action.USB_USB_DEVICE_ATTACHED"
+            android:resource="@xml/accessory_filter" />
         </activity>
     </application>
     <uses-feature android:name="com.android.future.usb.accessory"/>
