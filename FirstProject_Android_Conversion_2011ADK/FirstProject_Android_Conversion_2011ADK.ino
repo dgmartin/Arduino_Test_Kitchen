@@ -68,7 +68,7 @@ struct SendBuf {
   }
 
   int Send() { 
-    Serial.println('######### Print #########');
+    Serial.println("Print");
     //    Serial.println(buf);
     return acc.write(buf, pos); 
   }
@@ -79,18 +79,23 @@ struct SendBuf {
 
 void loop()
 {
-  Serial.println('Loop');
+//  Serial.println("Loop");
   char returnChar = 13;
-  uint8_t msg[64];
+  //  uint8_t msg[64];
+  byte msg[4];
   if (acc.isConnected()) {
-    int recvLen = acc.read(msg, sizeof(msg));
+    int recvLen = acc.read(msg, sizeof(msg),1);
     int red=-1;
     int green=-1;
     int blue=-1;
-    Serial.println('######### Receive #########');
+//    Serial.println("Receiving");
     //    Serial.println(msg);
-
-    if (recvLen >= 4) {
+    int i;
+    for (i = 0; i < recvLen; i = i + 1) {
+      Serial.println(msg[i]);
+    }
+    if (recvLen >= 3) {
+      Serial.println("Received");
       // look for the next valid integer in the incoming usb stream:
       red = msg[0];
       // do it again:
@@ -99,6 +104,10 @@ void loop()
       blue = msg[2];
       // look for the newline. That's the end of your
       // sentence:
+
+      Serial.print(red, DEC);
+      Serial.print(green, DEC);
+      Serial.println(blue, DEC);
 
       if (msg[3] == returnChar) {
         // constrain the values to 0 - 255 and invert
@@ -134,6 +143,8 @@ void loop()
     //set the accessory to its default state
   }
 }
+
+
 
 
 

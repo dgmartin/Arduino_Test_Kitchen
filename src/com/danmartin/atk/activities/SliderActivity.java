@@ -100,12 +100,7 @@ public class SliderActivity extends Activity implements SeekBar.OnSeekBarChangeL
         mBlueFeed = (TextView) findViewById(R.id.fbblue);
 
 
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(USB_ACCESSORY_ATTACHED);
-        filter.addAction(ACTION_USB_PERMISSION);
-        filter.addAction(USB_DEVICE_ATTACHED);
-        filter.addAction(UsbManager.ACTION_USB_ACCESSORY_DETACHED);
-        registerReceiver(mReceiver, filter);
+        startReceiver();
 
         openAccessory();
     }
@@ -209,5 +204,28 @@ public class SliderActivity extends Activity implements SeekBar.OnSeekBarChangeL
             mReader.close();
         }
         mAccessory = null;
+    }
+
+    protected void startReceiver() {
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(USB_ACCESSORY_ATTACHED);
+        filter.addAction(ACTION_USB_PERMISSION);
+        filter.addAction(USB_DEVICE_ATTACHED);
+        filter.addAction(UsbManager.ACTION_USB_ACCESSORY_DETACHED);
+        registerReceiver(mReceiver, filter);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        startReceiver();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (mReceiver != null) {
+            unregisterReceiver(mReceiver);
+        }
     }
 }

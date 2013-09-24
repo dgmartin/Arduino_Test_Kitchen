@@ -31,7 +31,11 @@ public class UsbWriteThread extends Thread {
     }
 
     public void notify(String payload) {
-        synchronized (mPayload) {
+        try {
+            synchronized (mPayload) {
+                mPayload = payload;
+            }
+        } catch (Exception e) {
             mPayload = payload;
         }
         synchronized (this) {
@@ -40,7 +44,7 @@ public class UsbWriteThread extends Thread {
     }
 
     @Override
-    public void run() {
+    public synchronized void run() {
         String tempPayload = null;
         while (mRun) {
             if (mPayload != null) {
@@ -48,7 +52,7 @@ public class UsbWriteThread extends Thread {
                     tempPayload = mPayload;
                     mPayload = null;
                 }
-                if (tempPayload != null&&mOutputStream!=null) {
+                if (tempPayload != null && mOutputStream != null) {
                     try {
                         mOutputStream.write(tempPayload);
                         tempPayload = null;
@@ -66,7 +70,7 @@ public class UsbWriteThread extends Thread {
         }
     }
 
-    public void close() {
+    public synchronized void close() {
         mRun = false;
         try {
             mOutputStream.close();
