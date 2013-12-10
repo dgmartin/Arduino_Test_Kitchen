@@ -13,11 +13,16 @@ import android.util.Log;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.ToggleButton;
+
 import com.danmartin.atk.R;
 import com.danmartin.atk.threads.UsbReadThread;
 import com.danmartin.atk.threads.UsbWriteThread;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.FileDescriptor;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 
 public class SliderActivity extends Activity implements SeekBar.OnSeekBarChangeListener, UsbReadThread.UsbReadCallback {
 
@@ -38,8 +43,8 @@ public class SliderActivity extends Activity implements SeekBar.OnSeekBarChangeL
     UsbAccessory mAccessory;
     UsbAccessory mDevice;
     ParcelFileDescriptor mFileDescriptor;
-    BufferedReader mInputStream;
-    BufferedWriter mOutputStream;
+    BufferedInputStream mInputStream;
+    BufferedOutputStream mOutputStream;
 
     UsbWriteThread mWriter;
     UsbReadThread mReader;
@@ -122,15 +127,17 @@ public class SliderActivity extends Activity implements SeekBar.OnSeekBarChangeL
 
                 FileInputStream fis = new FileInputStream(fd);
 //            mInputStream = new DataInputStream(fis);
-                mInputStream = new BufferedReader(new InputStreamReader(fis));
+                mInputStream = new BufferedInputStream(fis);
                 mReader = new UsbReadThread();
                 mReader.init(mInputStream, this);
                 mReader.start();
 
                 FileOutputStream fos = new FileOutputStream(fd);
-                mOutputStream = new BufferedWriter(new OutputStreamWriter(fos));
+//                mOutputStream = new BufferedWriter(new OutputStreamWriter(fos));
+                BufferedOutputStream buf = new BufferedOutputStream(fos);
                 mWriter = new UsbWriteThread();
-                mWriter.init(mOutputStream);
+//                mWriter.init(buf);
+                mWriter.init(fos);
                 mWriter.start();
             }
         }
@@ -152,7 +159,13 @@ public class SliderActivity extends Activity implements SeekBar.OnSeekBarChangeL
 
     public void sendPayload() {
         if (mWriter != null) {
-            String payload = mRedVal + "," + mGreenVal + "," + mBlueVal + "\n";
+//            String payload = mRedVal + "," + mGreenVal + "," + mBlueVal + "\n";
+
+            byte[] payload = new byte[4];
+            payload[0] = (byte) mRedVal;
+            payload[1] = (byte) mGreenVal;
+            payload[2] = (byte) mBlueVal;
+            payload[3] = 13;
             mWriter.notify(payload);
         }
     }
@@ -183,17 +196,34 @@ public class SliderActivity extends Activity implements SeekBar.OnSeekBarChangeL
     }
 
     @Override
-    public void recieved(char[] results) {
-        if (results != null && results.length > 3) {
-            mRedFeed.setText(results[0]);
-            mGreenFeed.setText((results[1]));
-            mBlueFeed.setText((results[2]));
-            if ((Character.getNumericValue(results[0]) != mRedVal
-                    || Character.getNumericValue(results[1]) != mGreenVal
-                    || Character.getNumericValue(results[2]) != mBlueVal)) {
-                sendPayload();
-            }
+    public void recieved(final byte[] results) {
+        if (results != null && results.length >= 3) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (mRedFeed != null)
+                        mRedFeed.setText(String.valueOf(unsignedToBytes(results[0])));
+                    if (mGreenFeed != null)
+                        mGreenFeed.setText(String.valueOf(unsignedToBytes(results[1])));
+                    if (mBlueFeed != null)
+                        mBlueFeed.setText(String.valueOf(unsignedToBytes(results[2])));
+                }
+            });
+
+
+//            mRedFeed.setText(results[0]);
+//            mGreenFeed.setText((results[1]));
+//            mBlueFeed.setText((results[2]));
+//            if ((Character.getNumericValue(results[0]) != mRedVal
+//                    || Character.getNumericValue(results[1]) != mGreenVal
+//                    || Character.getNumericValue(results[2]) != mBlueVal)) {
+//                sendPayload();
+//            }
         }
+    }
+
+    public static int unsignedToBytes(byte b) {
+        return b & 0xFF;
     }
 
     public void detachAccessory() {

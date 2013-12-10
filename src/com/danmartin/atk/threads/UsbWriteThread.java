@@ -1,7 +1,8 @@
 package com.danmartin.atk.threads;
 
-import java.io.BufferedWriter;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * Created with IntelliJ IDEA.
@@ -15,8 +16,10 @@ public class UsbWriteThread extends Thread {
     private boolean mRun = true;
 
     private String mPayload;
+    private byte[] mBuffer;
 
-    private BufferedWriter mOutputStream;
+//    private BufferedWriter mOutputStream;
+    private OutputStream mOutputStream;
 
     public UsbWriteThread() {
         super("UsbWriter");
@@ -26,7 +29,7 @@ public class UsbWriteThread extends Thread {
         super(threadName);
     }
 
-    public void init(BufferedWriter inOutputStream) {
+    public void init(OutputStream inOutputStream) {
         mOutputStream = inOutputStream;
     }
 
@@ -42,20 +45,61 @@ public class UsbWriteThread extends Thread {
             this.notifyAll();
         }
     }
+    public void notify(byte[] buffer) {
+        try {
+            synchronized (mBuffer) {
+                mBuffer = buffer;
+            }
+        } catch (Exception e) {
+            mBuffer = buffer;
+        }
+        synchronized (this) {
+            this.notifyAll();
+        }
+    }
+
+//    @Override
+//    public synchronized void run() {
+//        String tempPayload = null;
+//        while (mRun) {
+//            if (mPayload != null) {
+//                synchronized (mPayload) {
+//                    byte[] mBuffer = new byte[4];
+//
+//                    tempPayload = mPayload;
+//                    mPayload = null;
+//                }
+//                if (tempPayload != null && mOutputStream != null) {
+//                    try {
+//                        mOutputStream.write(tempPayload);
+//                        tempPayload = null;
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
+//            } else {
+//                try {
+//                    this.wait();
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        }
+//    }
 
     @Override
     public synchronized void run() {
-        String tempPayload = null;
+        byte[] tempBuffer = null;
         while (mRun) {
-            if (mPayload != null) {
-                synchronized (mPayload) {
-                    tempPayload = mPayload;
-                    mPayload = null;
+            if (mBuffer != null) {
+                synchronized (mBuffer) {
+                    tempBuffer = mBuffer;
+                    mBuffer = null;
                 }
-                if (tempPayload != null && mOutputStream != null) {
+                if (tempBuffer != null && mOutputStream != null) {
                     try {
-                        mOutputStream.write(tempPayload);
-                        tempPayload = null;
+                        mOutputStream.write(tempBuffer);
+                        tempBuffer = null;
                     } catch (IOException e) {
                         e.printStackTrace();
                     }

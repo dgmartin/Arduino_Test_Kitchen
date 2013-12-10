@@ -73,13 +73,13 @@ struct SendBuf {
     return acc.write(buf, pos); 
   }
 
-  uint8_t buf[128];
+  uint8_t buf[4];
   int pos;
 };
 
 void loop()
 {
-//  Serial.println("Loop");
+  Serial.println("Loop");
   char returnChar = 13;
   //  uint8_t msg[64];
   byte msg[4];
@@ -88,13 +88,13 @@ void loop()
     int red=-1;
     int green=-1;
     int blue=-1;
-//    Serial.println("Receiving");
+    Serial.println("Receiving");
     //    Serial.println(msg);
     int i;
-    for (i = 0; i < recvLen; i = i + 1) {
+    for (i = 0; i < sizeof(msg)-1; i = i + 1) {
       Serial.println(msg[i]);
     }
-    if (recvLen >= 3) {
+    if (sizeof(msg) >= 3) {
       Serial.println("Received");
       // look for the next valid integer in the incoming usb stream:
       red = msg[0];
@@ -104,11 +104,6 @@ void loop()
       blue = msg[2];
       // look for the newline. That's the end of your
       // sentence:
-
-      Serial.print(red, DEC);
-      Serial.print(green, DEC);
-      Serial.println(blue, DEC);
-
       if (msg[3] == returnChar) {
         // constrain the values to 0 - 255 and invert
         // if you're using a common-cathode LED, just use "constrain(color, 0, 255);"
@@ -120,15 +115,24 @@ void loop()
         analogWrite(redPin, red);
         analogWrite(greenPin, green);
         analogWrite(bluePin, blue);
-      }
-      SendBuf outBuf;
-      outBuf.Reset();
 
-      outBuf.Append(red);
-      outBuf.Append(green);
-      outBuf.Append(blue);
-      outBuf.Append(returnChar);
-      outBuf.Send();
+
+        //        uint8_t buffer[4];
+        //        buffer[0]=red;
+        //        buffer[1]=green;
+        //        buffer[2]=blue;
+        //        buffer[3]=13;
+        //        acc.write(buffer, 4); 
+
+        SendBuf outBuf;
+        outBuf.Reset();
+
+        outBuf.Append(red);
+        outBuf.Append(green);
+        outBuf.Append(blue);
+        outBuf.Append(returnChar);
+        outBuf.Send();
+      }
     }
     // print the three numbers in one string as hexadecimal:
 
@@ -141,8 +145,21 @@ void loop()
   }
   else{
     //set the accessory to its default state
+    int red=-1;
+    int green=-1;
+    int blue=-1;
+
+    analogWrite(redPin, 255);
+    analogWrite(greenPin, 255);
+    analogWrite(bluePin, 255);
   }
 }
+
+
+
+
+
+
 
 
 

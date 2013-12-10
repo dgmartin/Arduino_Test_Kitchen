@@ -1,6 +1,8 @@
 package com.danmartin.atk.threads;
 
-import java.io.BufferedReader;
+import android.util.Log;
+
+import java.io.BufferedInputStream;
 import java.io.IOException;
 
 /**
@@ -14,7 +16,7 @@ public class UsbReadThread extends Thread {
 
     private boolean mRun = true;
 
-    BufferedReader mInputStream;
+    BufferedInputStream mInputStream;
     UsbReadCallback mListener;
 
     public UsbReadThread() {
@@ -25,7 +27,7 @@ public class UsbReadThread extends Thread {
         super(threadName);
     }
 
-    public void init(BufferedReader inInputStream, UsbReadCallback listener) {
+    public void init(BufferedInputStream inInputStream, UsbReadCallback listener) {
         mInputStream = inInputStream;
         mListener = listener;
     }
@@ -34,25 +36,26 @@ public class UsbReadThread extends Thread {
     public void run() {
         while (mRun) {
             char[] results = null;
-            try {
-                if (mInputStream.ready()) {
-                    String nextLine = mInputStream.readLine();
-                    if (nextLine != null) {
-                        results     =new char[nextLine.length()];
-                                nextLine.getChars(0,nextLine.length(),results,0);
-                        if (mListener != null) {
-                            mListener.recieved(results);
-                        }
-                    } else {
-                        mInputStream.wait();
+            int count = 0;
+            do {
+                try {
+                    byte[] buffer = new byte[4];
+                    count = mInputStream.read(buffer);
+                    Log.e("ATK", (int) buffer[0] + ", " + (int)buffer[1] + ", " +(int) buffer[2] + ", " + (int)buffer[3]);
+                    if (mListener != null) {
+                        mListener.recieved(buffer);
                     }
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
+            } while (count >= 4);
+            try {
+                mInputStream.wait();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
+
     }
 
     public void close() {
@@ -65,6 +68,6 @@ public class UsbReadThread extends Thread {
     }
 
     public interface UsbReadCallback {
-        public void recieved(char[] results);
+        public void recieved(byte[] results);
     }
 }
